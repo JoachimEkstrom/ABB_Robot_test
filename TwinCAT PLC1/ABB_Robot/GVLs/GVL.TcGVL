@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.4">
+  <GVL Name="GVL" Id="{5accb902-7e9e-45d7-8000-bd24352e736f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	Rotor_X: INT;
+	Rotor_Y: INT;
+	Rotor_Z: INT;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

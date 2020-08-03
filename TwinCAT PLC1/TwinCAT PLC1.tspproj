@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.10">
+	<Project ProjectGUID="{C397704F-A5CE-4A5C-8CFF-C70B2542A2C3}" ShowHideConfigurations="#x106">
+		<Plc>
+			<Project GUID="{7A9FA7A5-292B-4270-AF1D-8AB3EFDAEF67}" Name="ABB_Robot" PrjFilePath="ABB_Robot\ABB_Robot.plcproj" TmcFilePath="ABB_Robot\ABB_Robot.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e"/>
+		</Plc>
+	</Project>
+</TcSmProject>

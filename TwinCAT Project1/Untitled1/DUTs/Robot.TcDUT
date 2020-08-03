@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.4">
+  <DUT Name="Robot" Id="{bf6ec002-5bec-4906-9cd8-516e6f1fcf40}">
+    <Declaration><![CDATA[TYPE Robot :
+STRUCT
+	Manual_Mode_Enabled: BOOL;
+		
+	Rotor_Axis: Axis; 
+	Finger_Axis: Axis;
+	Wrist_Axis: Axis;
+	Forearm_Axis: Axis; 
+	PistonIK_Axis: Axis;
+	Piston_Axis: Axis;
+	Arm_Axis: Axis;
+	CylinderIK_Axis: Axis;
+	Cylinder_Axis: Axis; 
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,1034 @@
+﻿<div id="Desktop" data-tchmi-type="tchmi-view"
+     data-tchmi-top="0" data-tchmi-left="0"
+     data-tchmi-width-mode="Content"
+     data-tchmi-min-width="100" data-tchmi-min-width-unit="%"
+     data-tchmi-height-mode="Content"
+     data-tchmi-min-height="100" data-tchmi-min-height-unit="%"
+     data-tchmi-background-image="Images/Background.png"
+     data-tchmi-background-image-height="100" data-tchmi-background-image-width="100"
+     data-tchmi-background-image-height-unit="%" data-tchmi-background-image-width-unit="%" data-tchmi-creator-viewport-width="1920" data-tchmi-creator-viewport-height="1080">
+
+  <div id="ViewDesktopBeckhoffLogo" data-tchmi-type="tchmi-image" 
+       data-tchmi-src="Images/Beckhoff_Logo.svg"
+       data-tchmi-left="14" data-tchmi-top="21" 
+       data-tchmi-width="194" data-tchmi-height="57">
+
+  </div>
+
+  <div id="TcHmiHtmlHost" data-tchmi-type="tchmi-html-host" data-tchmi-height="642" data-tchmi-height-unit="px" data-tchmi-left="40" data-tchmi-left-unit="px" data-tchmi-top="91" data-tchmi-top-unit="px" data-tchmi-width="1405" data-tchmi-width-unit="px">
+
+
+      <style>
+          
+          div {
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              width: 100%;
+              height: 100%;
+              margin: 0;
+              padding: 0;
+          }
+
+          h1,
+          h3 {
+              margin: 10px;
+              text-align: center;
+              
+          }
+
+          #renderCanvas {
+              margin: 0 auto;
+              justify-content: center;
+              align-items: center;
+              width: 80%;
+              height: 80%;
+              touch-action: none;
+              margin-bottom: 20px;
+          }
+
+      </style>
+      <script src="./babylon.js"></script>
+      <script src="./babylonjs.loaders.min.js"></script>
+      <script src="./pep.js"></script>
+
+      <div>
+          <h1>Babylon testing</h1>
+          <h3>use WSADQE + mouse for camera movements</h3>
+
+          <canvas id="renderCanvas" touch-action="none"></canvas>
+
+
+      </div>
+
+      <!-- touch-action="none" for best results from PEP -->
+
+      <script>
+          let canvas = document.getElementById("renderCanvas") // Get the canvas element
+          let engine = new BABYLON.Engine(canvas, true) // Generate the BABYLON 3D engine
+          let animations
+
+          let Finger_Node
+          let Wrist_Node
+          let Forearm_Node
+          let PistonIK_Node
+          let Piston_Node
+          let Arm_Node
+          let CylinderIK_Node
+          let Cylinder_Node
+          let Rotor_Node
+
+          let RobotVars
+   
+          let Test_Axis
+            
+          let Finger_Vector = new BABYLON.Vector3(0, 0, 0)
+          let Wrist_Vector = new BABYLON.Vector3(0, 0, 0)
+          let Forearm_Vector = new BABYLON.Vector3(0, 0, 0)
+          let PistonIK_Vector = new BABYLON.Vector3(0,0, -Math.PI / 2)
+          let Piston_Vector = new BABYLON.Vector3(0, 0, -Math.PI / 2)
+          let Arm_Vector = new BABYLON.Vector3(0, 0, 0)
+          let CylinderIK_Vector = new BABYLON.Vector3(0, 0, -Math.PI / 2)
+          let Cylinder_Vector = new BABYLON.Vector3(0, 0, -Math.PI / 2)
+          let Rotor_Vector = new BABYLON.Vector3(0, 0, -Math.PI / 2)
+
+
+          /******* Add the create scene function ******/
+          let createScene = function () {
+              // Create the scene space
+              let scene = new BABYLON.Scene(engine)
+
+              BABYLON.SceneLoader.LoadAssetContainer("./", "IRB6640.glb", scene, function (container) {
+                 animations = container.animationGroups
+                 animations[0].stop() // If not stopped it will start automatically when loaded.
+
+                 // Get the Transformation Nodes i.e. Bones
+   
+                  Finger_Node = container.transformNodes[0]
+                  Wrist_Node = container.transformNodes[1]
+                  Forearm_Node = container.transformNodes[2]
+                  PistonIK_Node = container.transformNodes[3]
+                  Piston_Node = container.transformNodes[4]
+                  Arm_Node = container.transformNodes[5]
+                  CylinderIK_Node = container.transformNodes[6]
+                  Cylinder_Node = container.transformNodes[7]
+                  Rotor_Node = container.transformNodes[8]
+     
+                 console.log(container)
+                
+
+                  // Set alwaysSelectAsActiveMesh to true, this stops the Cube from flickering during camera or animation movements.
+                 container.meshes[1].alwaysSelectAsActiveMesh = true
+
+                 container.addAllToScene()
+              })
+
+              let camera = new BABYLON.FlyCamera("FlyCamera", new BABYLON.Vector3(0, 2, -10), scene)
+
+              // Targets the camera to a particular position. In this case the scene origin
+              camera.setTarget(new BABYLON.Vector3(0, 1, 0))
+
+              // Airplane like rotation, with faster roll correction and banked-turns.
+              // Default is 100. A higher number means slower correction.
+              camera.rollCorrect = 5000
+              // Default is false.
+              camera.bankedTurn = false
+              // Defaults to 90° in radians in how far banking will roll the camera.
+              camera.bankedTurnLimit = 0
+              // How much of the Yawing (turning) will affect the Rolling (banked-turn.)
+              // Less than 1 will reduce the Rolling, and more than 1 will increase it.
+              camera.bankedTurnMultiplier = 0
+
+              camera.inversRotationSpeed = 1
+              camera.speed = 0.3
+
+              // This attaches the camera to the canvas
+              camera.attachControl(canvas, true)
+
+              // Add lights to the scene
+              let light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 5), scene)
+
+              scene.ambientColor = new BABYLON.Color3(1, 1, 1)
+
+              return scene
+          }
+          /******* End of the create scene function ******/
+
+          let scene = createScene() //Call the createScene function
+
+
+          // Data from PLC
+
+
+
+
+          setInterval(() => {
+
+              readServerData();
+              // writeServerData();
+
+          }, 50)
+
+
+
+          // Register a render loop to repeatedly render the scene
+          engine.runRenderLoop(function () {
+
+              scene.render()
+          })
+
+
+          // Animations 
+
+          function StartAni1() {
+              if (animations[0].isStarted !== true && animations[1].isStarted !== true) {
+                  animations[0].start()
+              }
+          
+          }
+          function StartAni2() {
+              if (animations[0].isStarted !== true && animations[1].isStarted !== true) {
+                  animations[1].start()
+              }
+          }
+
+
+
+          function readServerData() {
+
+
+              TcHmi.Server.readSymbolEx('PLC1.GVL.RobotVars', { timeout: 50 }, function (data) {
+                  RobotVars = data.response.commands[0].readValue;
+
+
+                  if (RobotVars.Manual_Mode_Enabled) {
+
+                      Finger_Vector.z = RobotVars.Finger_Axis.Z
+                      Wrist_Vector.y = RobotVars.Wrist_Axis.Y
+                      Forearm_Vector.z = ((-Math.PI / 2) + RobotVars.Forearm_Axis.Z)
+                      // PistonIK_Vector.y = RobotVars.PistonIK_Axis.Y
+                      // Piston_Vector.y = RobotVars.Piston_Axis.Y
+                      Arm_Vector.z = ((Math.PI / 2) + RobotVars.Arm_Axis.Z)
+                      // CylinderIK_Vector.y = RobotVars.CylinderIK_Axis.Y
+                      // Cylinder_Vector.y = RobotVars.Cylinder_Axis.Y
+                      Rotor_Vector.y = RobotVars.Rotor_Axis.Y
+
+                      Finger_Node.rotation = Finger_Vector
+                      Wrist_Node.rotation = Wrist_Vector
+                      Forearm_Node.rotation = Forearm_Vector
+                      // CylinderIK_Node.rotation = CylinderIK_Vector
+                      // Cylinder_Node.rotation = Cylinder_Vector
+                      Arm_Node.rotation = Arm_Vector
+                      // PistonIK_Node.rotation = PistonIK_Vector
+                      // Piston_Node.rotation = Piston_Vector
+                      Rotor_Node.rotation = Rotor_Vector
+
+
+                  }
+
+                  
+              })
+             
+              TcHmi.Server.readSymbolEx('PLC1.GVL.Test_Axis', { timeout: 50 }, function (data) {
+                  Test_Axis = data.response.commands[0].readValue;
+
+              })
+   
+
+
+          }
+
+          function writeServerData() {
+
+             // TcHmi.Server.writeSymbolEx('PLC1.GVL.Test', 1.3425345, { timeout: 5 }, function (data) {
+             // console.log(data.error)
+             // })
+
+
+          }
+
+          // Watch for browser/canvas resize events
+          window.addEventListener("resize", function () {
+              engine.resize()
+          })
+      </script>
+
+  
+
+</div>
+
+  <div id="TcHmiButton" data-tchmi-type="tchmi-button" data-tchmi-height="71" data-tchmi-height-unit="px" data-tchmi-left="308" data-tchmi-left-unit="px" data-tchmi-text="Start animation 1" data-tchmi-top="757" data-tchmi-top-unit="px" data-tchmi-width="191" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-horizontal-alignment="Center">
+    
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "TcHmiButton.onMouseClick",
+    "actions": [
+      {
+        "objectType": "JavaScript",
+        "active": true,
+        "sourceLines": [
+          "StartAni1()"
+        ],
+        "injectContextObject": false,
+        "asyncWait": true,
+        "waitMode": "Synchronous"
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiButton_1" data-tchmi-type="tchmi-button" data-tchmi-height="75" data-tchmi-height-unit="px" data-tchmi-left="849" data-tchmi-left-unit="px" data-tchmi-text="Start Animation 2" data-tchmi-top="758" data-tchmi-top-unit="px" data-tchmi-width="191" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "TcHmiButton_1.onMouseClick",
+    "actions": [
+      {
+        "objectType": "JavaScript",
+        "active": true,
+        "sourceLines": [
+          "StartAni2()"
+        ],
+        "injectContextObject": false,
+        "asyncWait": true,
+        "waitMode": "Synchronous"
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="Manual_Mode" data-tchmi-type="tchmi-button" data-tchmi-height="79" data-tchmi-height-unit="px" data-tchmi-left="1458" data-tchmi-left-unit="px" data-tchmi-text="Manual_mode" data-tchmi-top="820" data-tchmi-top-unit="px" data-tchmi-width="209" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-right="">
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Manual_Mode.onPressed",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "expressions": [
+          {
+            "compare1": {
+              "objectType": "Symbol",
+              "symbolExpression": "%s%PLC1.GVL.RobotVars::Manual_Mode_Enabled%/s%"
+            },
+            "compare2": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/BOOL",
+              "value": false
+            },
+            "compareOperator": "==",
+            "logic": null
+          }
+        ],
+        "true": [
+          {
+            "objectType": "WriteToSymbol",
+            "active": true,
+            "symbolExpression": "%s%PLC1.GVL.RobotVars::Manual_Mode_Enabled%/s%",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/BOOL",
+              "value": true
+            },
+            "asyncWait": true
+          }
+        ],
+        "false": [
+          {
+            "objectType": "WriteToSymbol",
+            "active": true,
+            "symbolExpression": "%s%PLC1.GVL.RobotVars::Manual_Mode_Enabled%/s%",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/BOOL",
+              "value": false
+            },
+            "asyncWait": true
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%s%PLC1.GVL.RobotVars::Manual_Mode_Enabled%/s%",
+    "actions": [
+      {
+        "objectType": "SwitchCase",
+        "active": true,
+        "compare": {
+          "objectType": "Symbol",
+          "symbolExpression": "%s%PLC1.GVL.RobotVars::Manual_Mode_Enabled%/s%"
+        },
+        "cases": [
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/BOOL",
+              "value": true
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%Manual_Mode::BackgroundColor%/ctrl%",
+                "valueType": "tchmi:framework#/definitions/Color",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": {
+                    "color": "rgba(68, 229, 17, 1)"
+                  }
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/BOOL",
+              "value": false
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%Manual_Mode::BackgroundColor%/ctrl%",
+                "valueType": "tchmi:framework#/definitions/Color",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": {
+                    "color": "rgba(229, 0, 0, 1)"
+                  }
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "caseDefault": {
+          "actions": []
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="Rotor_Axis_Slider" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="1457" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="675" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.RobotVars::Rotor_Axis::Y%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Rotor_Axis_Slider.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Rotor_Axis::Y%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Rotor_Axis_Slider::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="Reset_Button" data-tchmi-type="tchmi-button" data-tchmi-height="79" data-tchmi-height-unit="px" data-tchmi-left="1680" data-tchmi-left-unit="px" data-tchmi-text="Reset_Button" data-tchmi-top="820" data-tchmi-top-unit="px" data-tchmi-width="208" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Reset_Button.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Rotor_Axis::Y%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:general#/definitions/REAL",
+          "value": 0.0
+        },
+        "asyncWait": true
+      },
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Arm_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:general#/definitions/REAL",
+          "value": 0.0
+        },
+        "asyncWait": true
+      },
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Forearm_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:general#/definitions/REAL",
+          "value": 0.0
+        },
+        "asyncWait": true
+      },
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Finger_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:general#/definitions/REAL",
+          "value": 0.0
+        },
+        "asyncWait": true
+      },
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Wrist_Axis::Y%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:general#/definitions/REAL",
+          "value": 0.0
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiTextblock" data-tchmi-type="tchmi-textblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="1596" data-tchmi-left-unit="px" data-tchmi-text="Rotor" data-tchmi-top="675" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="20">
+
+</div>
+
+<div id="Arm_Axis_Slider" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="1457" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="531" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.RobotVars::Arm_Axis::Z%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Arm_Axis_Slider.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Arm_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Arm_Axis_Slider::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiTextblock_1" data-tchmi-type="tchmi-textblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="1597" data-tchmi-left-unit="px" data-tchmi-text="Arm" data-tchmi-top="532" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="20">
+
+</div>
+
+<div id="Forearm_Axis_Slider" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="1457" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="387" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.RobotVars::Forearm_Axis::Z%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Forearm_Axis_Slider.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Forearm_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Forearm_Axis_Slider::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiTextblock_2" data-tchmi-type="tchmi-textblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="1597" data-tchmi-left-unit="px" data-tchmi-text="Forearm" data-tchmi-top="387" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="20">
+
+</div>
+
+<div id="Wrist_Axis_Slider" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="1457" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="242" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.RobotVars::Wrist_Axis::Y%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Wrist_Axis_Slider.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Wrist_Axis::Y%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Wrist_Axis_Slider::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiTextblock_3" data-tchmi-type="tchmi-textblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="1597" data-tchmi-left-unit="px" data-tchmi-text="Wrist" data-tchmi-top="242" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="20">
+
+</div>
+
+<div id="Finger_Axis_Slider" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="1457" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="91" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.RobotVars::Finger_Axis::Z%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Finger_Axis_Slider.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.RobotVars::Finger_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Finger_Axis_Slider::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="TcHmiTextblock_4" data-tchmi-type="tchmi-textblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="1597" data-tchmi-left-unit="px" data-tchmi-text="Finger" data-tchmi-top="92" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="20">
+
+</div>
+
+<div id="Test_Axis_Slider_1" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="68" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="854" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.Test_Axis::X|Interval=20%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Test_Axis_Slider_1.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.Test_Axis::X%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Test_Axis_Slider_1::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="Test_Axis_Slider_2" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="511" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="854" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.Test_Axis::Y|Interval=20%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Test_Axis_Slider_2.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.Test_Axis::Y%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Test_Axis_Slider_2::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<div id="Test_Axis_Slider_3" data-tchmi-type="tchmi-linear-gauge" data-tchmi-base-animation-time="1000" data-tchmi-height="132" data-tchmi-height-unit="px" data-tchmi-label-range="0" data-tchmi-left="949" data-tchmi-left-unit="px" data-tchmi-show-labels="True" data-tchmi-show-ticks="False" data-tchmi-show-value-text="True" data-tchmi-start-from-zero="True" data-tchmi-top="854" data-tchmi-top-unit="px" data-tchmi-width="430" data-tchmi-width-unit="px" data-tchmi-editable="True" data-tchmi-max-value="3.14" data-tchmi-min-value="-3.14" data-tchmi-value="%s%PLC1.GVL.Test_Axis::Z|Interval=20%/s%" data-tchmi-click-anywhere-to-edit="True">
+<script data-tchmi-target-attribute="data-tchmi-range" type="application/json">
+[
+  {
+    "color": {
+      "color": "rgba(0, 128, 0, 1)"
+    },
+    "start": 0,
+    "end": 35
+  },
+  {
+    "color": {
+      "color": "rgba(255, 165, 0, 1)"
+    },
+    "start": 35,
+    "end": 70
+  },
+  {
+    "color": {
+      "color": "rgba(255, 0, 0, 1)"
+    },
+    "start": 70,
+    "end": 100
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-value-format" type="application/json">
+{
+  "objectType": "Function",
+  "fn": "GaugeValueFormatter",
+  "fnParams": []
+}
+</script>
+<script data-tchmi-target-attribute="data-tchmi-tick-definition" type="application/json">
+{
+  "mainTickRange": 1.0,
+  "subTickRange": 1.0
+}
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "Test_Axis_Slider_3.onValueChanged",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%s%PLC1.GVL.Test_Axis::Z%/s%",
+        "valueType": "tchmi:general#/definitions/REAL",
+        "value": {
+          "objectType": "Symbol",
+          "symbolExpression": "%ctrl%Test_Axis_Slider_3::Value%/ctrl%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+</div>
